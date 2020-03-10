@@ -10,9 +10,8 @@ class State(object):
     def __init__(self):
         self.t = None
         self.done = None
-        self.agent_pos = None
-        self.goal_pos = None
-        self.grid = None
+        self.agent_pos = [0, 0]
+        self.goal_pos = [0, 0]
 
 
 class Environment(object):
@@ -30,42 +29,44 @@ class Environment(object):
         self.obs_space = spaces.Box(low=0, high=1, shape=self.obs_shape, dtype=np.uint8)
         self.action_space = spaces.Discrete(4)
 
-        self.random = np.random.RandomState(seed)
+        self.grid = np.zeros((self.height, self.width), dtype=int)
+        self.grid[0, :] = 1
+        self.grid[:, 0] = 1
+        self.grid[-1, :] = 1
+        self.grid[:, -1] = 1
+        self.grid[5, :] = 1
+        self.grid[:, 5] = 1
+        self.grid[5, 2] = 0
+        self.grid[5, 8] = 0
+        self.grid[8, 5] = 0
 
+        self.agent_pos = [1, 4]
+        self.goal_pos = [1, 6]
+
+        self.lava_positions = np.where(self.grid == 1)
+        self.passage_positions = np.where(self.grid == 0)
+
+        self.base_obs = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+        self.base_obs[self.goal_pos[0], self.goal_pos[1], 1] = 1
+        for n in range(len(self.lava_positions[0])):
+            self.base_obs[self.lava_positions[0][n], self.lava_positions[1][n], 2] = 1
+
+        self.base_obs_image = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+        self.base_obs_image[self.goal_pos[0], self.goal_pos[1], :] = self.goal_color
+        for n in range(len(self.lava_positions[0])):
+            self.base_obs_image[self.lava_positions[0][n], self.lava_positions[1][n], :] = self.lava_color
+
+        self.random = np.random.RandomState(seed)
         self.state = None
 
     # ------------------------------------------------------------------------------------------------------------------
 
     def reset(self):
         self.state = State()
-
-        # Initialize level structure:
-        self.state.grid = np.zeros((self.height, self.width), dtype=int)
-        self.state.grid[0, :] = 1
-        self.state.grid[:, 0] = 1
-        self.state.grid[-1, :] = 1
-        self.state.grid[:, -1] = 1
-
-        self.state.grid[5, :] = 1
-        self.state.grid[:, 5] = 1
-        self.state.grid[5, 2] = 0
-        self.state.grid[5, 8] = 0
-        self.state.grid[8, 5] = 0
-
-        # self.state.grid[6, :] = 1
-        # self.state.grid[:, 6] = 1
-        # self.state.grid[6, 3] = 0
-        # self.state.grid[6, 9] = 0
-        # self.state.grid[9, 6] = 0
-
-        # print(self.state.grid)
-
         self.state.t = 0
         self.state.done = False
-
-        self.state.agent_pos = [1, 4]
-        self.state.goal_pos = [1, 6]
-
+        self.state.agent_pos = list(self.agent_pos)
+        self.state.goal_pos = list(self.goal_pos)
         return self.state_to_obs(self.state)
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -73,7 +74,7 @@ class Environment(object):
     def transitive(self, state, action):
 
         if self.random.random_sample() < 0.05:
-            p = [1.0/3.0, 1.0/3.0, 1.0/3.0, 1.0/3.0]
+            p = [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0]
             p[action] = 0.0
             action = self.random.choice(4, 1, p=p)[0]
 
@@ -88,7 +89,7 @@ class Environment(object):
 
         reward = 0.0
 
-        if state.grid[state.agent_pos[0], state.agent_pos[1]] == 1:  # Lava
+        if self.grid[state.agent_pos[0], state.agent_pos[1]] == 1:
             state.done = True
         elif state.agent_pos[0] == state.goal_pos[0] and state.agent_pos[1] == state.goal_pos[1]:
             state.done = True
@@ -102,13 +103,17 @@ class Environment(object):
     # ------------------------------------------------------------------------------------------------------------------
 
     def state_to_obs(self, state):
-        obs = np.zeros((self.height, self.width, 3), dtype=np.uint8)
-        if not state.done:
-            obs[state.agent_pos[0], state.agent_pos[1], 0] = 1
-            obs[state.goal_pos[0], state.goal_pos[1], 1] = 1
-            lavas = np.where(state.grid == 1)  # TODO: Remove
-            for n in range(len(lavas[0])):
-                obs[lavas[0][n], lavas[1][n], 2] = 1
+        if state.done:
+            return np.zeros((self.height, self.width, 3), dtype=np.uint8)
+        obs = self.base_obs.copy()
+        obs[state.agent_pos[0], state.agent_pos[1], 0] = 1
+        return obs
+
+    # ------------------------------------------------------------------------------------------------------------------
+
+    def generate_obs(self, agent_pos):
+        obs = self.base_obs.copy()
+        obs[agent_pos[0], agent_pos[1], 0] = 1
         return obs
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -119,7 +124,7 @@ class Environment(object):
 
         # TODO: Save actions
 
-        grid = Grid(matrix=(1 - state.grid))
+        grid = Grid(matrix=(1 - self.grid))
         start = grid.node(state.agent_pos[1], state.agent_pos[0])
         end = grid.node(state.goal_pos[1], state.goal_pos[0])
 
@@ -146,18 +151,11 @@ class Environment(object):
     def render(self, state=None):
         if state is None:
             state = self.state
-
         state = self.state
-        obs_image = np.zeros((self.height, self.width, 3), dtype=np.uint8)
-
+        obs_image = self.base_obs_image.copy()
         obs_image[state.agent_pos[0], state.agent_pos[1], :] = self.agent_color
-        obs_image[state.goal_pos[0], state.goal_pos[1], :] = self.goal_color
-
-        lavas = np.where(state.grid == 1)  # TODO: Remove
-        for n in range(len(lavas[0])):
-            obs_image[lavas[0][n], lavas[1][n], :] = self.lava_color
-
-        obs_image = cv2.resize(obs_image, (330, 330), interpolation=cv2.INTER_NEAREST).astype(np.uint8)
+        obs_image = cv2.resize(obs_image, (int(self.height * 30), int(self.width * 30)),
+                               interpolation=cv2.INTER_NEAREST).astype(np.uint8)
         return obs_image
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -178,5 +176,3 @@ class Environment(object):
         self.random = np.random.RandomState(seed)
 
 
-e = Environment(0)
-e.reset()
