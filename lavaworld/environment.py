@@ -46,6 +46,22 @@ class Environment(object):
         self.lava_positions = np.where(self.grid == 1)
         self.passage_positions = np.where(self.grid == 0)
 
+        self.state_id_dict = {}
+        self.transition_id_dict = {}
+        state_id = 0
+        transition_id = 0
+        for n in range(len(self.passage_positions[0])):
+            if not (self.passage_positions[0][n] == 1 and self.passage_positions[1][n] == 6):
+                self.state_id_dict[(self.passage_positions[0][n], self.passage_positions[1][n])] = state_id
+                for i_action in range(4):
+                    self.transition_id_dict[(self.passage_positions[0][n], self.passage_positions[1][n], i_action)] = \
+                        transition_id
+                    transition_id += 1
+                state_id += 1
+
+        self.n_states = len(self.state_id_dict)
+        self.n_transitions = len(self.transition_id_dict)
+
         self.base_obs = np.zeros((self.height, self.width, 3), dtype=np.uint8)
         self.base_obs[self.goal_pos[0], self.goal_pos[1], 1] = 1
         for n in range(len(self.lava_positions[0])):
@@ -58,6 +74,8 @@ class Environment(object):
 
         self.random = np.random.RandomState(seed)
         self.state = None
+
+
 
     # ------------------------------------------------------------------------------------------------------------------
 
@@ -174,5 +192,3 @@ class Environment(object):
     # (Re)sets the random state of the environment, useful to reproduce the same level sequences for evaluation purposes
     def set_random_state(self, seed):
         self.random = np.random.RandomState(seed)
-
-
