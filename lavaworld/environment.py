@@ -47,12 +47,14 @@ class Environment(object):
         self.passage_positions = np.where(self.grid == 0)
 
         self.state_id_dict = {}
+        self.agent_pos_dict = {}
         self.transition_id_dict = {}
         state_id = 0
         transition_id = 0
         for n in range(len(self.passage_positions[0])):
             if not (self.passage_positions[0][n] == 1 and self.passage_positions[1][n] == 6):
                 self.state_id_dict[(self.passage_positions[0][n], self.passage_positions[1][n])] = state_id
+                self.agent_pos_dict[state_id] = (self.passage_positions[0][n], self.passage_positions[1][n])
                 for i_action in range(4):
                     self.transition_id_dict[(self.passage_positions[0][n], self.passage_positions[1][n], i_action)] = \
                         transition_id
