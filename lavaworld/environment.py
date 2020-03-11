@@ -75,8 +75,6 @@ class Environment(object):
         self.random = np.random.RandomState(seed)
         self.state = None
 
-
-
     # ------------------------------------------------------------------------------------------------------------------
 
     def reset(self):
