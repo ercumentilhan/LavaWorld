@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='LavaWorld',
-    version='0.0.8',
+    version='1.0.0',
     description='LavaWorld',
     url='None',
     author='Ercument Ilhan',
@@ -10,4 +10,8 @@ setup(
     license='GPL',
     packages=['lavaworld'],
     install_requires=[
+        'gym>=0.17.1',
+        'numpy>=1.18.2',
+        'opencv-python>=4.2.0.34',
+        'pathfinding>=0.0.4'
     ])
