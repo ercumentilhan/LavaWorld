@@ -2,6 +2,8 @@
 
 ## Installation
 **Dependencies**
+- gym
+- numpy
 - opencv-python
 - pathfinding
 
