@@ -11,7 +11,7 @@ setup(
     packages=['lavaworld'],
     install_requires=[
         'gym>=0.17.1',
-        'numpy>=1.18.2',
+        'numpy>=1.18.1',
         'opencv-python>=4.2.0.34',
         'pathfinding>=0.0.4'
     ])
